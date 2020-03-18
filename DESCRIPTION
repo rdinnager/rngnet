@@ -1,0 +1,29 @@
+Package: rngnet
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Russell",
+           family = "Dinnage",
+           role = c("aut", "cre"),
+           email = "r.dinnage@gmail.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    covr,
+    testthat (>= 2.1.0),
+    spelling,
+    knitr,
+    rmarkdown
+Language: en-US
+RoxygenNote: 7.0.2
+Imports: 
+    magrittr,
+    sf,
+    ggplot2,
+    isoband,
+    scico,
+    raster
+VignetteBuilder: knitr

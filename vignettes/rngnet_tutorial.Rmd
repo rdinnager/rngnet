@@ -1,0 +1,83 @@
+---
+title: "rngnet_tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{rngnet_tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(rngnet)
+library(sf)
+library(rnaturalearth)
+library(rmapshaper)
+library(ggplot2)
+```
+
+In this tutorial we will use `rngnet` to model the species range boundaries of some Australian Goannas, to demonstrate the main functionality of the package. `rngnet` model ranges as polygonal shapes across a landscape, using environmental data to try and predict the boundary accurately. It does this using a deep learning approach that attempts to learn the 'Signed Distance Function' (SDF) of a shape. THE SDF of a shape is a function that outputs the signed distance between a given point and the nearest points on the border of the shape of interest, being negative if inside the shape, and positive if outside. This allows one to reconstruct the original shape by determining the zero isocline of the function. Normally the SDF takes the spatial coordinates themselves as input, but in the Species Range Modelling approach implemented here we instead use environmental variables associated with the shape's surroundings as input, generating an SDF prediction based on the environment. Let's get started!
+
+We start by loading some range polygon data for Australian Goannas that is included as part of the package. this data originally came from Shai et al. (2017), which includes range polygons for most reptiles occurring globally. 
+
+```{r setup_data}
+data("Oz_goannas")
+```
+
+Now we will choose a species whose range boundary we want to model and get ourselves a map of AUstralia that we can use both to visualize the species' range and as a "background" boundary for our model. Let's have a go at modelling *Varanus caudolineatus*, otherwise known as the Stripe-tailed goanna!
+
+```{r get_map}
+Oz <- rnaturalearth::ne_countries(scale = 50, country = "Australia", returnclass = "sf") %>%
+  rmapshaper::ms_filter_islands(100000000) %>% ## remove small islands
+  sf::st_union() ## get rid of state boundaries
+
+stripey <- Oz_goannas[Oz_goannas$Binomial == "Varanus caudolineatus", ]
+
+ggplot2::ggplot(Oz) +
+  ggplot2::geom_sf() +
+  ggplot2::geom_sf(data = stripey, fill = "grey20") +
+  theme_minimal()
+
+```
+
+As I mentioned above, `rngnet` models species' range boundaries by trying to predict their SDFs. To get an intuition for what an SDF is, let's plot the SDF for this species' range. Here we use Euclidean distance which is not strictly correct for data in Longitude and Latitude coordinates. However, it is much faster to calculate distance, and so for quick visualization purposes we make do with this approximation (but if you want to be proper, just set `geo_dist` to `TRUE`).
+
+```{r plot_sdf}
+sdf <- rngnet::make_SDF_grid(stripey, Oz, geo_dist = FALSE)
+rngnet::plot_SDF(sdf)
+```
+
+To look at that another way, we can plot isolines of distance around the species' range.
+
+```{r plot_sdf_iso}
+rngnet::plot_SDF(sdf, type = "isolines")
+```
+Okay, so now we need some environmental data which we can use to predict the range SDF of the our stripey-tailed goanna, and therefore predict the shape of its range boundary through its zero isocline. Let's get bioclim data using the `raster` package and use that to try and model the species range boundary. We will use the package `velox` to do fast cropping of the bioclim data to Australia's extent.
+
+```{r get_bioclim}
+bioclim <- raster::getData("worldclim", var = 'bio', res = 5)
+bioclim_vx <- velox::velox(bioclim)
+
+bioclim_vx$crop(Oz)
+
+bioclim_rast <- bioclim_vx$as.RasterStack()
+```
+
+Let's check that worked.
+
+```{r plot_raster}
+raster::plot(bioclim_rast[[1]])
+title(names(bioclim)[1])
+```
+
+Bioclim has 19 variables that measure different aspects of climate mainly involving temporal means and variability in rainfall and temperature. Now we have all the data we need to run a model! The main model fitting function in `rngnet` is `fit_SRM`, which takes as input a range polygon or polygons in `sf` format, a set of environmental factors as a `RasterLayer` or `RasterStack` object, and an optional background polygon (if not provided a background polygon will be generated from the environmental raster). Let's give it a try!
+
+```{r run_model_1}
+fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast)
+```

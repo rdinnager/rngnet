@@ -1,0 +1,9 @@
+^rngnet\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.travis\.yml$
+^appveyor\.yml$
+^codecov\.yml$
+^data-raw$
+^README\.Rmd$
+^vignettes/wc5$
