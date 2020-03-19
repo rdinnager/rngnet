@@ -14,6 +14,12 @@ make_prediction_grid <- function(range_sf, bg, env = NULL, n_cells = 10000,
                                  return_type = c("sf", "tibble")) {
 
   prediction_map <- make_prediction_sf(range_sf, bg, n_cells)
+
+  if(!is.null(env)) {
+    env_vx <- velox::velox(env)
+    env_vals <- env_vx$extract_points(prediction_map)
+  }
+
   if(return_type == "sf") {
     return(prediction_map)
   } else {

@@ -25,5 +25,7 @@ Imports:
     ggplot2,
     isoband,
     scico,
-    raster
+    raster,
+    keras,
+    velox
 VignetteBuilder: knitr
