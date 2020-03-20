@@ -27,5 +27,10 @@ Imports:
     scico,
     raster,
     keras,
-    velox
+    velox,
+    smoothr,
+    patchwork,
+    gifski,
+    pbapply,
+    rstudioapi
 VignetteBuilder: knitr

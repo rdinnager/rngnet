@@ -15,7 +15,7 @@ df_to_iso <- function(df, levs, levs_high = NULL, x = "X", y = "Y", z = "sdf", b
   if(!is.null(buffer)) {
     rast <- rast %>%
       raster::extend(c(1, 1))
-    values(rast)[is.na(values(rast))] <- buffer
+    raster::values(rast)[is.na(raster::values(rast))] <- buffer
   }
 
   if(is.null(levs_high)) {
@@ -56,3 +56,4 @@ sf_points_to_tibble <- function(points_sf) {
 
   prediction_df
 }
+

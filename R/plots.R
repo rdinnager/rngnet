@@ -34,6 +34,9 @@ plot_SDF <- function(sdf, range_sf = NULL, bg = NULL, type = c("grid", "isolines
 
     iso <- df_to_iso(sdf, levs = levs, levs_high = levs_high, z = "sdf")
 
+    iso <- iso %>%
+      smoothr::smooth("ksmooth", smoothness = 3)
+
     pred_plot <- ggplot2::ggplot(iso) +
       ggplot2::geom_sf(aes(fill = val)) +
       scico::scale_fill_scico(palette = "oleron",

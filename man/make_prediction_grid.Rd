@@ -9,7 +9,8 @@ make_prediction_grid(
   bg,
   env = NULL,
   n_cells = 10000,
-  return_type = c("sf", "tibble")
+  return_type = c("matrix", "tibble"),
+  use_coords = FALSE
 )
 }
 \arguments{

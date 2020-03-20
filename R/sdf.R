@@ -23,8 +23,14 @@ calculate_sdf <- function(points_sf, range_sf, geo_dist = TRUE) {
                                   sf::st_cast("MULTILINESTRING"))
   grid_dists <- as.vector(grid_dists)
 
-  suppressMessages(grid_inside <- sf::st_within(points_sf, range_sf, sparse = FALSE))
-  grid_inside <- as.vector(grid_inside)
+  suppressMessages(grid_inside <- points_sf %>%
+    sf::st_as_sf() %>%
+    sf::st_join(range_sf %>%
+                  sf::st_union() %>%
+                  sf::st_as_sf() %>%
+                  dplyr::mutate(id = 1)))
+
+  grid_inside <- as.vector(!is.na(grid_inside$id))
   grid_dists[grid_inside] <- -grid_dists[grid_inside]
 
   return(grid_dists)
@@ -60,24 +66,37 @@ make_SDF_grid <- function(range_sf, bg, geo_dist = TRUE) {
 #' @export
 #'
 #' @examples
-collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts = 100000, close_scale = 0.025, very_close_scale = 0.0025) {
+collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts = 100000, close_scale = 0.025, very_close_scale = 0.0025,
+                                geo_dist = FALSE, centrer = NULL, scaler = NULL) {
 
   if(!is.null(env)) {
     env_vx <- velox::velox(env)
   }
 
-  shape_centroid <- sf::st_centroid(bg_polygons %>% sf::st_union())
-  st <- bg_polygons - shape_centroid
+  if(!is.null(centrer)) {
 
-  norms <- st %>%
-    sf::st_coordinates() %>%
-    .[ , 1:2] %>%
-    apply(1, function(x) sqrt(sum(x^2)))
+    shape_centroid <- sf::st_centroid(bg_polygons %>% sf::st_union())
+    st <- bg_polygons - shape_centroid
 
-  scaler <- max(norms)
+    if(!geo_dist) {
+      norms <- st %>%
+        sf::st_coordinates() %>%
+        .[ , 1:2] %>%
+        apply(1, function(x) sqrt(sum(x^2)))
+    } else {
+      norms <- bg_polygons %>%
+        sf::st_union() %>%
+        sf::st_cast("POLYGON") %>%
+        sf::st_cast("POINT") %>%
+        sf::st_distance(shape_centroid) %>%
+        as.vector()
+    }
 
-  centrer <- shape_centroid %>% sf::st_coordinates() %>%
-    as.vector()
+    scaler <- max(norms)
+
+    centrer <- shape_centroid %>% sf::st_coordinates() %>%
+      as.vector()
+    }
 
   range_st <- range_polygons %>%
     sf::st_cast("POLYGON") %>%
@@ -105,26 +124,32 @@ collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts =
 
   shape_sample <- c(shape_sample_close, shape_sample_very_close, shape_sample_bg)
 
+  if(geo_dist) {
+    shape_sample <- shape_sample %>%
+      sf::st_set_crs(sf::st_crs(range_polygons))
+  }
+
   if(!is.null(env)) {
     env_sample <- env_vx$extract_points(shape_sample)
     colnames(env_sample) <- names(env)
   }
 
-  shape_sample <- (shape_sample - centrer) / scaler
-  range_st$geometry <- (range_st$geometry - centrer) / scaler
+  sdfs <- calculate_sdf(shape_sample, range_polygons, geo_dist = geo_dist)
 
-  sdfs <- calculate_sdf(shape_sample, range_st)
+  shape_sample <- (shape_sample - centrer) / scaler
+  sdfs <- sdfs / scaler
 
   sdf_sample <- shape_sample %>%
     sf::st_coordinates() %>%
     dplyr::as_tibble() %>%
     dplyr::mutate(sdf = sdfs) %>%
     dplyr::bind_cols(env_sample %>%
-                       as_tibble())
+                       dplyr::as_tibble())
 
   sdf_sample <- sdf_sample %>%
     dplyr::mutate_at(dplyr::vars(-X, -Y, -sdf),
                      ~ ifelse(is.na(.), 0, .))
+
 
   sdf_sample
 
