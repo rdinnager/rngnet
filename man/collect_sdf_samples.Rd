@@ -13,7 +13,8 @@ collect_sdf_samples(
   very_close_scale = 0.0025,
   geo_dist = FALSE,
   centrer = NULL,
-  scaler = NULL
+  scaler = NULL,
+  use_future
 )
 }
 \arguments{

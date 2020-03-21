@@ -120,4 +120,28 @@ plot_preds <- function(predictions, prediction_df, bg, centrer = NULL, scaler = 
   file_names
 }
 
+#' Function to make predictions from the model and return an sf object
+#'
+#' @param model
+#' @param test_dat
+#' @param prediction_df
+#'
+#' @return
+#' @export
+#'
+#' @examples
+predict_to_sf <- function(model, test_dat, prediction_df) {
+
+  predictions <- predict(model, test_dat)
+
+  prediction_results <- prediction_df %>%
+    dplyr::mutate(sdf = predictions %>%
+                    as.vector())
+
+  prediction_sf <- df_to_iso(prediction_results, levs = 0, buffer = 0.1) %>%
+    sf::st_cast("MULTIPOLYGON")
+
+  prediction_sf
+}
+
 

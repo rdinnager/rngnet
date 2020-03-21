@@ -67,7 +67,7 @@ make_SDF_grid <- function(range_sf, bg, geo_dist = TRUE) {
 #'
 #' @examples
 collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts = 100000, close_scale = 0.025, very_close_scale = 0.0025,
-                                geo_dist = FALSE, centrer = NULL, scaler = NULL) {
+                                geo_dist = FALSE, centrer = NULL, scaler = NULL, use_future) {
 
   if(!is.null(env)) {
     env_vx <- velox::velox(env)

@@ -85,7 +85,7 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
   }
 
   sdf_samples <- collect_sdf_samples(range_polygons, bg_polygons, env_raster, n_sdf_samples, geo_dist = geo_dist,
-                                     centrer = centrer, scaler = scaler)
+                                     centrer = centrer, scaler = scaler, use_future = use_future)
 
   prediction_df <- make_prediction_grid(range_polygons, bg_polygons, env_raster, return_type = "tibble", use_coords = TRUE)
   test_dat <- as.matrix(prediction_df %>%
@@ -152,22 +152,46 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
   final_fit <- run_model(sdf_train[[length(sdf_train)]], epoch = epochs, batch_size = batch_size)
 
+  predicted_sf <- predict_to_sf(model, test_dat, prediction_df)
+
+  res <- list(model = model, history = list(final_fit = final_fit, validations = validations),
+              true_range_polygons = range_polygons,
+              predicted_range_polygons = predicted_sf,
+              bg_polygons = bg_polygons,
+              metrics = list(final_fit = final_fit_metrics,
+                             validation = validation_metrics))
+
   if(vis_training_progress) {
-    png_files <- tempfile(paste0("png_", seq_along(test_preds$test_predictions)),
-                          fileext = ".png")
-
-    png_files <- lapply(seq_along(png_files), function(x) plot_preds(test_preds$test_predictions[[x]],
-                                                                     prediction_df,
-                                                                     bg_polygons,
-                                                                     file_names = png_files[x]))
-
-    gif_file <- tempfile()
-    anim <- gifski::gifski(unlist(png_files), gif_file = gif_file, height = 480, width = 960,
-                           delay = 10 / length(png_files))
-
-    rstudioapi::viewer(anim)
-
+    res$training_progress <- test_preds$test_predictions
   }
 
+  class(res) <- "rngnet"
+
+}
+
+make_training_animation <- function(model_fit, use_future = FALSE) {
+  message("Making training animation...")
+  png_files <- tempfile(paste0("png_", seq_along(model_fit$training_progress)),
+                        fileext = ".png")
+  message("Plotting frames...")
+  if(use_future) {
+    png_files <- furrr::future_map(seq_along(png_files),
+                                   ~ plot_preds(test_preds$test_predictions[[.x]],
+                                                prediction_df,
+                                                bg_polygons,
+                                                file_names = png_files[.x]),
+                                   .progress = TRUE)
+  } else {
+    png_files <- pblapply(seq_along(png_files), function(x) plot_preds(test_preds$test_predictions[[x]],
+                                                                       prediction_df,
+                                                                       bg_polygons,
+                                                                       file_names = png_files[x]))
+  }
+  gif_file <- tempfile()
+  message("Generating gif...")
+  anim <- gifski::gifski(unlist(png_files), gif_file = gif_file, height = 480, width = 960,
+                         delay = 10 / length(png_files))
+
+  rstudioapi::viewer(anim)
 
 }
