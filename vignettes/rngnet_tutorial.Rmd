@@ -79,5 +79,5 @@ title(names(bioclim)[1])
 Bioclim has 19 variables that measure different aspects of climate mainly involving temporal means and variability in rainfall and temperature. Now we have all the data we need to run a model! The main model fitting function in `rngnet` is `fit_SRM`, which takes as input a range polygon or polygons in `sf` format, a set of environmental factors as a `RasterLayer` or `RasterStack` object, and an optional background polygon (if not provided a background polygon will be generated from the environmental raster). Let's give it a try! 
 
 ```{r run_model_1}
-fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "none")
+fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "random", validation_folds = 1L)
 ```

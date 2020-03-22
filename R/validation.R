@@ -106,11 +106,11 @@ make_one_cross_validation <- function(sdf_samples, starts, ends, use_coords) {
 
   train_samples <- new_samples %>%
     dplyr::filter(validation == 0) %>%
-    dplyr::mutate(-angle, -validation)
+    dplyr::select(-angle, -validation, -new_x, -new_y)
 
   val_samples <- new_samples %>%
     dplyr::filter(validation == 1) %>%
-    dplyr::mutate(-angle, -validation)
+    dplyr::select(-angle, -validation, -new_x, -new_y)
 
   train_sample_mat <- as.matrix(train_samples)
   train_col <- which(colnames(train_sample_mat) == "sdf")

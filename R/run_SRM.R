@@ -114,7 +114,7 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
   environment(run_model) <- environment()
 
   if(length(sdf_train) > 1){
-    validations <- lapply(sdf_train, run_model, epoch = epochs, batch_size = batch_size)
+    validations <- lapply(sdf_train[-length(sdf_train)], run_model, epoch = epochs, batch_size = batch_size)
   }
 
   if(vis_training_progress) {

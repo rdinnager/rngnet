@@ -70,14 +70,14 @@ deepSDF_model <- function(input_len, net_breadth = 256L, dropout_rate = 0.5) {
 #' @export
 #'
 #' @examples
-run_model <- function(train_dat, validation_dat = NULL, test_dat = NULL,
+run_model <- function(train_dat, test_dat = NULL,
                       epochs, batch_size) {
 
   train_x <- train_dat$train$x
   train_y <- train_dat$train$y
 
-  if(!is.null(validation_dat)) {
-    validation_list <- list(validation_dat$x, validation_dat$y)
+  if(!is.null(train_dat$validation)) {
+    validation_list <- list(train_dat$validation$x, train_dat$validation$y)
   } else {
     validation_list <- NULL
   }
@@ -85,7 +85,7 @@ run_model <- function(train_dat, validation_dat = NULL, test_dat = NULL,
   model %>% keras::fit(
     x = train_x,
     y = train_y,
-    #validation_data = validation_list,
+    validation_data = validation_list,
     epochs = epochs,
     batch_size = batch_size,
     view_metrics = TRUE,
