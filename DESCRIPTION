@@ -35,5 +35,5 @@ Imports:
     rstudioapi,
     furrr
 VignetteBuilder: knitr
-Remotes:  
+Remotes: 
     hunzikp/velox

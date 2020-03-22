@@ -80,8 +80,8 @@ make_prediction_sf <- function(range_sf, bg, n_cells = 10000) {
 #' @export
 #'
 #' @examples
-plot_preds <- function(predictions, prediction_df, bg, centrer = NULL, scaler = NULL,
-                       file_names) {
+plot_preds <- function(predictions, prediction_df, range_polygons, bg, centrer = NULL, scaler = NULL,
+                       file_names = NULL) {
   prediction_results <- prediction_df %>%
     dplyr::mutate(sdf = predictions %>%
                     as.vector())
@@ -115,9 +115,12 @@ plot_preds <- function(predictions, prediction_df, bg, centrer = NULL, scaler = 
         theme(plot.title = element_text(hjust = 0.5))})
 
 
-
-  ggsave(file_names, frame, device = "png", type = "cairo", height = 5, width = 10)
-  file_names
+  if(!is.null(file_names)) {
+    ggsave(file_names, frame, device = "png", type = "cairo", height = 5, width = 10)
+    return(file_names)
+  } else {
+    return(frame)
+  }
 }
 
 #' Function to make predictions from the model and return an sf object

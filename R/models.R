@@ -85,7 +85,7 @@ run_model <- function(train_dat, validation_dat = NULL, test_dat = NULL,
   model %>% keras::fit(
     x = train_x,
     y = train_y,
-    validation_data = validation_list,
+    #validation_data = validation_list,
     epochs = epochs,
     batch_size = batch_size,
     view_metrics = TRUE,

@@ -25,7 +25,9 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
                     net_breadth = 256L, dropout_rate = 0.5, use_coords = FALSE,
                     standardise_env = TRUE, vis_training_progress = TRUE,
                     validation_type = c("folds", "random", "none"),
-                    validation_folds = 5L, validation_split = 4L, epochs = "auto",
+                    validation_folds = 5L, validation_split = 4L, validation_prop = 0.2,
+                    epochs = "auto",
+                    keep_sdf_samples = TRUE,
                     max_epochs = 500L,
                     geo_dist = FALSE) {
 
@@ -84,6 +86,7 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
     raster::values(env_raster) <- scale(raster::values(env_raster), center = env_centre, scale = env_scale)
   }
 
+  message("Calculating SDF samples. This could take awhile...")
   sdf_samples <- collect_sdf_samples(range_polygons, bg_polygons, env_raster, n_sdf_samples, geo_dist = geo_dist,
                                      centrer = centrer, scaler = scaler, use_future = use_future)
 
@@ -101,12 +104,14 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
   )
 
   sdf_train <- make_cross_validations(sdf_samples, validation_type, validation_folds, validation_split,
-                                      use_coords)
+                                      validation_prop, use_coords)
   callbacks <- list()
   if(epochs == "auto") {
-    callbacks <- c(callbacks, keras::callback_early_stopping(monitor = "loss", min_delta = 0.001, patience = 10, restore_best_weights = TRUE))
+    callbacks <- c(callbacks, keras::callback_early_stopping(monitor = "loss", min_delta = 0.0001, patience = 10, restore_best_weights = TRUE))
     epochs <- max_epochs
   }
+
+  environment(run_model) <- environment()
 
   if(length(sdf_train) > 1){
     validations <- lapply(sdf_train, run_model, epoch = epochs, batch_size = batch_size)
@@ -142,6 +147,12 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
                                       self$test_predictions[[paste(self$current_epoch, batch, sep = "_")]] <-
                                         predict(self$model,
                                                 test_dat)
+
+                                      # p <- plot_preds(self$test_predictions[[paste(self$current_epoch, batch, sep = "_")]],
+                                      #                 prediction_df,
+                                      #                 range_polygons,
+                                      #                 bg_polygons)
+                                      # print(p)
                                    }
                                  }
                                ))
@@ -154,6 +165,11 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
   predicted_sf <- predict_to_sf(model, test_dat, prediction_df)
 
+  if(validation_type == "none") {
+    validations <- NULL
+    validation_metrics <- NULL
+  }
+  final_fit_metrics <- NULL
   res <- list(model = model, history = list(final_fit = final_fit, validations = validations),
               true_range_polygons = range_polygons,
               predicted_range_polygons = predicted_sf,
@@ -165,7 +181,17 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
     res$training_progress <- test_preds$test_predictions
   }
 
+  if(keep_sdf_samples) {
+    res$sdf_samples <- sdf_samples
+  }
+
+  if(validation_type != "none") {
+    res$validation_intervals <- lapply(sdf_train[-length(sdf_train)],
+                                       function(x) x$intervals)
+  }
+
   class(res) <- "rngnet"
+  res
 
 }
 
