@@ -33,7 +33,8 @@ Imports:
     gifski,
     pbapply,
     rstudioapi,
-    furrr
+    furrr,
+    digest
 VignetteBuilder: knitr
 Remotes: 
     hunzikp/velox

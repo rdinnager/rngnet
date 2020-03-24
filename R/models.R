@@ -13,37 +13,37 @@ deepSDF_model <- function(input_len, net_breadth = 256L, dropout_rate = 0.5) {
   coord_input <- keras::layer_input(shape = c(input_len), dtype = "float32", name = "coord_input")
 
   first_block <- coord_input %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate)
 
   sdf_output <- keras::layer_concatenate(list(first_block, coord_input)) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
-    keras::layer_dense(units = net_breadth) %>%
+    keras::layer_dense(units = net_breadth, use_bias = FALSE) %>%
     keras::layer_batch_normalization() %>%
     keras::layer_activation_leaky_relu() %>%
     keras::layer_dropout(rate = dropout_rate) %>%
@@ -71,7 +71,7 @@ deepSDF_model <- function(input_len, net_breadth = 256L, dropout_rate = 0.5) {
 #'
 #' @examples
 run_model <- function(train_dat, test_dat = NULL,
-                      epochs, batch_size) {
+                      epochs, batch_size, reset_when_done = FALSE) {
 
   train_x <- train_dat$train$x
   train_y <- train_dat$train$y
@@ -82,7 +82,7 @@ run_model <- function(train_dat, test_dat = NULL,
     validation_list <- NULL
   }
 
-  model %>% keras::fit(
+  history <- model %>% keras::fit(
     x = train_x,
     y = train_y,
     validation_data = validation_list,
@@ -91,6 +91,19 @@ run_model <- function(train_dat, test_dat = NULL,
     view_metrics = TRUE,
     callbacks = callbacks
   )
+
+  weights <- keras::get_weights(model)
+
+  if(reset_when_done) {
+    model <<- deepSDF_model(input_len, net_breadth = net_breadth, dropout_rate = dropout_rate)
+    message("Resetting...")
+    model %>% keras::compile(
+      optimizer = 'adam',
+      loss = 'mean_absolute_error'
+    )
+  }
+
+  list(history = history, weights = weights)
 
 
 }

@@ -7,10 +7,11 @@
 plot_preds(
   predictions,
   prediction_df,
+  range_polygons,
   bg,
   centrer = NULL,
   scaler = NULL,
-  file_names
+  file_names = NULL
 )
 }
 \arguments{

@@ -114,7 +114,7 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
   environment(run_model) <- environment()
 
   if(length(sdf_train) > 1){
-    validations <- lapply(sdf_train[-length(sdf_train)], run_model, epoch = epochs, batch_size = batch_size)
+    validations <- lapply(sdf_train[-length(sdf_train)], run_model, epoch = epochs, batch_size = batch_size, reset_when_done = TRUE)
   }
 
   if(vis_training_progress) {
@@ -163,19 +163,32 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
   final_fit <- run_model(sdf_train[[length(sdf_train)]], epoch = epochs, batch_size = batch_size)
 
+  model_id <- digest::digest(model)
+
+  .models$model_list[[model_id]] <- model
+
+  model_weights <- final_fit$weights
+
+  history <- list(final_fit = final_fit$history)
+
   predicted_sf <- predict_to_sf(model, test_dat, prediction_df)
 
-  if(validation_type == "none") {
-    validations <- NULL
+  metrics <- list(final_fit_metrics = NULL)
+
+  if(validation_type != "none") {
     validation_metrics <- NULL
+    history$validations <- lapply(validations, function(x) x$history)
+    validation_weights <- lapply(validations, function(x) x$weights)
+    metrics$validations <- validation_metrics
   }
-  final_fit_metrics <- NULL
-  res <- list(model = model, history = list(final_fit = final_fit, validations = validations),
+
+  res <- list(model_id = model_id,
+              model_weights = model_weights, history = history,
               true_range_polygons = range_polygons,
               predicted_range_polygons = predicted_sf,
               bg_polygons = bg_polygons,
-              metrics = list(final_fit = final_fit_metrics,
-                             validation = validation_metrics))
+              test_data = prediction_df,
+              metrics = metrics)
 
   if(vis_training_progress) {
     res$training_progress <- test_preds$test_predictions
@@ -188,6 +201,7 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
   if(validation_type != "none") {
     res$validation_intervals <- lapply(sdf_train[-length(sdf_train)],
                                        function(x) x$intervals)
+    res$validation_weights <- validation_weights
   }
 
   class(res) <- "rngnet"

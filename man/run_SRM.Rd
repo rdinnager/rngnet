@@ -18,7 +18,9 @@ run_SRM(
   validation_type = c("folds", "random", "none"),
   validation_folds = 5L,
   validation_split = 4L,
+  validation_prop = 0.2,
   epochs = "auto",
+  keep_sdf_samples = TRUE,
   max_epochs = 500L,
   geo_dist = FALSE
 )

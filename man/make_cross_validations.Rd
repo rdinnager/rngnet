@@ -9,6 +9,7 @@ make_cross_validations(
   validation_type,
   validation_folds,
   validation_split,
+  validation_prop,
   use_coords
 )
 }

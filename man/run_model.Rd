@@ -6,10 +6,10 @@
 \usage{
 run_model(
   train_dat,
-  validation_dat = NULL,
   test_dat = NULL,
   epochs,
-  batch_size
+  batch_size,
+  reset_when_done = FALSE
 )
 }
 \arguments{
