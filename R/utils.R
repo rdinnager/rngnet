@@ -57,3 +57,26 @@ sf_points_to_tibble <- function(points_sf) {
   prediction_df
 }
 
+
+#' Title
+#'
+#' @param fit_model
+#'
+#' @return
+#' @export
+#'
+#' @examples
+get_model <- function(fit_model) {
+  if(!is.null(.models$model_list[[fit_model$model_id]])) {
+    return(.models$model_list[[fit_model$model_id]])
+  } else {
+    model <- deepSDF_model(fit_model$model_info$num_vars,
+                           net_breadth = fit_model$model_info$net_breadth,
+                           dropout_rate = fit_model$model_info$dropout_rate)
+
+    keras::set_weights(model, fit_model$model_weights)
+
+    return(model)
+
+  }
+}

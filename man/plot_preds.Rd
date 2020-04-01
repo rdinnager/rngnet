@@ -9,6 +9,7 @@ plot_preds(
   prediction_df,
   range_polygons,
   bg,
+  frame_nums = NULL,
   centrer = NULL,
   scaler = NULL,
   file_names = NULL

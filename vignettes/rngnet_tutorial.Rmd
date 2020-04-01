@@ -19,6 +19,7 @@ library(rngnet)
 library(sf)
 library(rnaturalearth)
 library(rmapshaper)
+library(raster)
 library(ggplot2)
 ```
 
@@ -79,5 +80,78 @@ title(names(bioclim)[1])
 Bioclim has 19 variables that measure different aspects of climate mainly involving temporal means and variability in rainfall and temperature. Now we have all the data we need to run a model! The main model fitting function in `rngnet` is `fit_SRM`, which takes as input a range polygon or polygons in `sf` format, a set of environmental factors as a `RasterLayer` or `RasterStack` object, and an optional background polygon (if not provided a background polygon will be generated from the environmental raster). Let's give it a try! 
 
 ```{r run_model_1}
-fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "folds", validation_folds = 5L)
+fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "folds", validation_folds = 5L, early_stop_patience = 12)
+```
+
+So, what can we do with this model besides just entertaining ourselves watching the wiggly polygon in the training animation (which is pretty fun I have to admit)? Well, just like any other SDM, we can use it to predict range boundaries under different environmental distributions, such as those expected under a climate change scenario. Let's try this. We can download future projected Bioclim variables using the `raster` package, and then ask our model to predict the range boundaries under these new values. Let's use the Access 1.0 model of the CMIP5 climate projections, for the years 2050, and 2070. We'll use representative concentration pathway 6.
+
+```{r get_proj_bioclim}
+bioclim_proj_50 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 50)
+
+bioclim_proj_70 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 70)
+
+bioclim_proj_50_vx <- velox::velox(bioclim_proj_50)
+
+bioclim_proj_50_vx$crop(Oz)
+
+bioclim_proj_50_rast <- bioclim_proj_50_vx$as.RasterStack()
+
+bioclim_proj_70_vx <- velox::velox(bioclim_proj_70)
+
+bioclim_proj_70_vx$crop(Oz)
+
+bioclim_proj_70_rast <- bioclim_proj_70_vx$as.RasterStack()
+
+raster::plot(bioclim_proj_70_rast[[1]])
+```
+Next we can use the `predict_range` function to predict a range under new environmental data. What does 2050 look like?
+
+```{r predict_2050}
+prediction_2050 <- rngnet::predict_range(fit, new_env = bioclim_proj_50_rast)
+```
+
+And 2070?
+
+```{r predict_2070}
+prediction_2070 <- rngnet::predict_range(fit, new_env = bioclim_proj_70_rast)
+```
+
+```{r plot_sdfs}
+rngnet::plot_SDF(prediction_2050$sdf, type = "isolines")
+```
+
+```{r plot_new_sdf}
+sdf_grid <- prediction_2050$sdf %>%
+  dplyr::select(X, Y)
+
+sdf_pred <- sdf_grid %>%
+    dplyr::mutate(sdf = rngnet::calculate_sdf(sdf_grid %>%
+                                                sf::st_as_sf(coords = c("X","Y")),
+                                              prediction_2050$sf, 
+                                              geo_dist = FALSE))
+
+  rngnet::make_SDF_grid(prediction_2050$sf, fit$bg_polygons, geo_dist = FALSE)
+rngnet::plot_SDF(sdf_pred, type = "isolines")
+
+sdf_pred <- sdf_pred %>%
+  dplyr::left_join(prediction_2050$sdf %>%
+                     dplyr::select(X, Y, sdf_pred = sdf))
+
+ggplot2::ggplot(sdf_pred, aes(sdf, sdf_pred)) +
+  ggplot2::geom_point() +
+  ggplot2::geom_smooth(colour = "white") +
+  ggplot2::theme_minimal()
+
+sdf_cutoff <- 0.1 * fit$model_info$scaler
+
+ggplot2::ggplot(sdf_pred %>%
+                  dplyr::filter(sdf > -sdf_cutoff & sdf < sdf_cutoff), 
+                aes(sdf, sdf_pred)) +
+  ggplot2::geom_point() +
+  ggplot2::geom_smooth(colour = "green") +
+  ggplot2::geom_abline(slope = 1, colour = "red") +
+  ggplot2::ylab("Predicted distance to Zero Isocline") +
+  ggplot2::xlab("True distance to Zero Isocline") +
+  ggplot2::theme_minimal()
+
 ```

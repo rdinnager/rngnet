@@ -24,11 +24,12 @@ calculate_sdf <- function(points_sf, range_sf, geo_dist = TRUE) {
   grid_dists <- as.vector(grid_dists)
 
   suppressMessages(grid_inside <- points_sf %>%
-    sf::st_as_sf() %>%
-    sf::st_join(range_sf %>%
-                  sf::st_union() %>%
-                  sf::st_as_sf() %>%
-                  dplyr::mutate(id = 1)))
+                     sf::st_as_sf() %>%
+                     sf::st_join(range_sf %>%
+                                   lwgeom::st_make_valid() %>%
+                                   sf::st_as_sf() %>%
+                                   dplyr::mutate(id = 1))
+    )
 
   grid_inside <- as.vector(!is.na(grid_inside$id))
   grid_dists[grid_inside] <- -grid_dists[grid_inside]
@@ -36,7 +37,6 @@ calculate_sdf <- function(points_sf, range_sf, geo_dist = TRUE) {
   return(grid_dists)
 
 }
-
 
 #' Function to generate an SDF on a background grid for a polygon
 #'
@@ -67,7 +67,8 @@ make_SDF_grid <- function(range_sf, bg, geo_dist = TRUE) {
 #'
 #' @examples
 collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts = 100000, close_scale = 0.025, very_close_scale = 0.0025,
-                                geo_dist = FALSE, centrer = NULL, scaler = NULL, use_future) {
+                                geo_dist = FALSE, centrer = NULL, scaler = NULL, use_future,
+                                drop_NAs = TRUE) {
 
   if(!is.null(env)) {
     env_vx <- velox::velox(env)
@@ -146,9 +147,14 @@ collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts =
     dplyr::bind_cols(env_sample %>%
                        dplyr::as_tibble())
 
-  sdf_sample <- sdf_sample %>%
-    dplyr::mutate_at(dplyr::vars(-X, -Y, -sdf),
-                     ~ ifelse(is.na(.), 0, .))
+  if(drop_NAs) {
+    sdf_sample <- sdf_sample %>%
+      tidyr::drop_na(-X, -Y, -sdf)
+  } else {
+    sdf_sample <- sdf_sample %>%
+      dplyr::mutate_at(dplyr::vars(-X, -Y, -sdf),
+                       ~ ifelse(is.na(.), 0, .))
+  }
 
 
   sdf_sample

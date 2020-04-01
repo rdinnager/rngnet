@@ -4,7 +4,7 @@
 \alias{calculate_sdf}
 \title{Function to calculate an SDF from a set of points to a polygon}
 \usage{
-calculate_sdf(points_sf, range_sf, geo_dist = TRUE)
+calculate_sdf(points_sf, range_sf, geo_dist = TRUE, drop_NAs = TRUE)
 }
 \arguments{
 \item{geo_dist}{}

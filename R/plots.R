@@ -47,3 +47,56 @@ plot_SDF <- function(sdf, range_sf = NULL, bg = NULL, type = c("grid", "isolines
   }
   pred_plot
 }
+
+
+#' Title
+#'
+#' @param model_fit
+#' @param use_future
+#' @param freeze_frames
+#'
+#' @return
+#' @export
+#'
+#' @examples
+make_training_animation <- function(model_fit, use_future = FALSE,
+                                    freeze_frames = 0.05, duration = 10) {
+  message("Making training animation...")
+
+  extra_frames <- ceiling(length(model_fit$training_progress) * freeze_frames)
+
+  frame_nums <- names(model_fit$training_progress) %>%
+    strsplit("_") %>%
+    lapply(as.numeric) %>%
+    lapply(function(x) x[1] * model_fit$model_info$batches_per_epoch + x[2]) %>%
+    unlist()
+  png_files <- tempfile(paste0("png_", seq_along(model_fit$training_progress)),
+                        fileext = ".png")
+  message("Plotting frames...")
+  if(use_future) {
+    png_files <- furrr::future_map(seq_along(png_files),
+                                   ~ plot_preds(fit$training_progress[[.x]],
+                                                model_fit$test_data,
+                                                model_fit$true_range_polygons,
+                                                model_fit$bg_polygons,
+                                                frame_nums[.x],
+                                                file_names = png_files[.x]),
+                                   .progress = TRUE)
+  } else {
+    png_files <- pblapply(seq_along(png_files), function(x) plot_preds(fit$training_progress[[x]],
+                                                                       model_fit$test_data,
+                                                                       model_fit$true_range_polygons,
+                                                                       model_fit$bg_polygons,
+                                                                       frame_nums,
+                                                                       file_names = png_files[x]))
+  }
+  gif_file <- tempfile()
+  message("Generating gif...")
+  png_files <- unlist(png_files)
+  png_files <- c(png_files, rep(png_files[length(png_files)], extra_frames))
+  anim <- gifski::gifski(png_files, gif_file = gif_file, height = 480, width = 960,
+                         delay = duration / length(png_files))
+
+  rstudioapi::viewer(anim)
+
+}

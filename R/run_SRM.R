@@ -21,15 +21,17 @@
 #'
 #' @examples
 run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_samples = 100000,
-                    batch_size = floor(n_sdf_samples / 20),
+                    batch_size = floor(n_sdf_samples / 20), sdf_cutoff = 0.1,
                     net_breadth = 256L, dropout_rate = 0.5, use_coords = FALSE,
                     standardise_env = TRUE, vis_training_progress = TRUE,
                     validation_type = c("folds", "random", "none"),
                     validation_folds = 5L, validation_split = 4L, validation_prop = 0.2,
                     epochs = "auto",
+                    early_stop_patience = 10,
                     keep_sdf_samples = TRUE,
                     max_epochs = 500L,
-                    geo_dist = FALSE) {
+                    geo_dist = FALSE,
+                    drop_NAs = TRUE) {
 
   validation_type <- match.arg(validation_type)
 
@@ -88,7 +90,8 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
   message("Calculating SDF samples. This could take awhile...")
   sdf_samples <- collect_sdf_samples(range_polygons, bg_polygons, env_raster, n_sdf_samples, geo_dist = geo_dist,
-                                     centrer = centrer, scaler = scaler, use_future = use_future)
+                                     centrer = centrer, scaler = scaler, use_future = use_future,
+                                     drop_NAs = drop_NAs)
 
   prediction_df <- make_prediction_grid(range_polygons, bg_polygons, env_raster, return_type = "tibble", use_coords = TRUE)
   test_dat <- as.matrix(prediction_df %>%
@@ -98,16 +101,25 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
   model <- deepSDF_model(input_len, net_breadth = net_breadth, dropout_rate = dropout_rate)
 
+  loss_func <- function(sdf_cutoff = 0.1) {
+    sdf_cutoff <- sdf_cutoff
+
+    function(y_true, y_pred) {
+      keras::loss_mean_absolute_error(keras::k_clip(y_true, -sdf_cutoff, sdf_cutoff),
+                                      keras::k_clip(y_pred, -sdf_cutoff, sdf_cutoff))
+    }
+  }
+
   model %>% keras::compile(
     optimizer = 'adam',
-    loss = 'mean_absolute_error'
+    loss = loss_func(sdf_cutoff = sdf_cutoff)
   )
 
   sdf_train <- make_cross_validations(sdf_samples, validation_type, validation_folds, validation_split,
                                       validation_prop, use_coords)
   callbacks <- list()
   if(epochs == "auto") {
-    callbacks <- c(callbacks, keras::callback_early_stopping(monitor = "loss", min_delta = 0.0001, patience = 10, restore_best_weights = TRUE))
+    callbacks <- c(callbacks, keras::callback_early_stopping(monitor = "loss", min_delta = 0.0001, patience = early_stop_patience, restore_best_weights = TRUE))
     epochs <- max_epochs
   }
 
@@ -117,8 +129,9 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
     validations <- lapply(sdf_train[-length(sdf_train)], run_model, epoch = epochs, batch_size = batch_size, reset_when_done = TRUE)
   }
 
+  batches_per_epoch <- floor(n_sdf_samples / batch_size)
+
   if(vis_training_progress) {
-    batches_per_epoch <- floor(n_sdf_samples / batch_size)
     low_freq <- batches_per_epoch
     high_freq <- floor(batches_per_epoch / 5)
     decay_finish <- 25
@@ -182,13 +195,26 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
     metrics$validations <- validation_metrics
   }
 
+  model_info <- list(batches_per_epoch = batches_per_epoch,
+                     num_vars = input_len,
+                     net_breadth = net_breadth,
+                     dropout_rate = dropout_rate,
+                     scaler = scaler,
+                     centrer = centrer)
+
+  if(standardise_env) {
+    model_info$env_centre <- env_centre
+    model_info$env_scale <- env_scale
+  }
+
   res <- list(model_id = model_id,
               model_weights = model_weights, history = history,
               true_range_polygons = range_polygons,
               predicted_range_polygons = predicted_sf,
               bg_polygons = bg_polygons,
               test_data = prediction_df,
-              metrics = metrics)
+              metrics = metrics,
+              model_info = model_info)
 
   if(vis_training_progress) {
     res$training_progress <- test_preds$test_predictions
@@ -209,29 +235,4 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
 
 }
 
-make_training_animation <- function(model_fit, use_future = FALSE) {
-  message("Making training animation...")
-  png_files <- tempfile(paste0("png_", seq_along(model_fit$training_progress)),
-                        fileext = ".png")
-  message("Plotting frames...")
-  if(use_future) {
-    png_files <- furrr::future_map(seq_along(png_files),
-                                   ~ plot_preds(test_preds$test_predictions[[.x]],
-                                                prediction_df,
-                                                bg_polygons,
-                                                file_names = png_files[.x]),
-                                   .progress = TRUE)
-  } else {
-    png_files <- pblapply(seq_along(png_files), function(x) plot_preds(test_preds$test_predictions[[x]],
-                                                                       prediction_df,
-                                                                       bg_polygons,
-                                                                       file_names = png_files[x]))
-  }
-  gif_file <- tempfile()
-  message("Generating gif...")
-  anim <- gifski::gifski(unlist(png_files), gif_file = gif_file, height = 480, width = 960,
-                         delay = 10 / length(png_files))
 
-  rstudioapi::viewer(anim)
-
-}

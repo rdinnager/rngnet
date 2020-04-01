@@ -10,6 +10,7 @@ run_SRM(
   bg_polygons = NULL,
   n_sdf_samples = 1e+05,
   batch_size = floor(n_sdf_samples/20),
+  sdf_cutoff = 0.1,
   net_breadth = 256L,
   dropout_rate = 0.5,
   use_coords = FALSE,
@@ -20,9 +21,11 @@ run_SRM(
   validation_split = 4L,
   validation_prop = 0.2,
   epochs = "auto",
+  early_stop_patience = 10,
   keep_sdf_samples = TRUE,
   max_epochs = 500L,
-  geo_dist = FALSE
+  geo_dist = FALSE,
+  drop_NAs = TRUE
 )
 }
 \arguments{
