@@ -194,8 +194,8 @@ predict_range <- function(fit_model, new_env = NULL, plot = TRUE, return_sdf = T
                                      scale = fit_model$model_info$env_scale)
   }
 
-  prediction_df <- make_prediction_grid(fit$true_range_polygons,
-                                        fit$bg_polygons,
+  prediction_df <- make_prediction_grid(fit_model$true_range_polygons,
+                                        fit_model$bg_polygons,
                                         new_env,
                                         return_type = "tibble",
                                         use_coords = TRUE)
@@ -214,11 +214,18 @@ predict_range <- function(fit_model, new_env = NULL, plot = TRUE, return_sdf = T
     sf::st_cast("MULTIPOLYGON")
 
   if(plot) {
-    p <- ggplot2::ggplot(fit_model$bg_polygons %>%
-                           sf::st_set_crs(NA)) +
-      ggplot2::geom_sf() +
-      ggplot2::geom_sf(data = predicted_sf, fill = "grey20") +
-      ggplot2::theme_minimal()
+    if(!sf::st_is_empty(predicted_sf)) {
+      p <- ggplot2::ggplot(fit_model$bg_polygons %>%
+                             sf::st_set_crs(NA)) +
+        ggplot2::geom_sf() +
+        ggplot2::geom_sf(data = predicted_sf, fill = "grey20") +
+        ggplot2::theme_minimal()
+    } else {
+      p <- ggplot2::ggplot(fit_model$bg_polygons %>%
+                             sf::st_set_crs(NA)) +
+        ggplot2::geom_sf() +
+        ggplot2::theme_minimal()
+    }
     plot(p)
   }
 

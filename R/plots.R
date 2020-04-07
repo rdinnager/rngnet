@@ -29,6 +29,10 @@ plot_SDF <- function(sdf, range_sf = NULL, bg = NULL, type = c("grid", "isolines
 
     bands <- -min(sdf$sdf) / inner_lines
 
+    if(bands < 0) {
+      bands <- (max(sdf$sdf) - min(sdf$sdf)) / inner_lines
+    }
+
     levs <- seq(min(sdf$sdf), max(sdf$sdf), by = bands)
     levs_high <- seq(min(sdf$sdf) + bands, max(sdf$sdf) + bands, by = bands)
 
@@ -38,7 +42,7 @@ plot_SDF <- function(sdf, range_sf = NULL, bg = NULL, type = c("grid", "isolines
       smoothr::smooth("ksmooth", smoothness = 3)
 
     pred_plot <- ggplot2::ggplot(iso) +
-      ggplot2::geom_sf(aes(fill = val)) +
+      ggplot2::geom_sf(ggplot2::aes(fill = val)) +
       scico::scale_fill_scico(palette = "oleron",
                               limits = c(-1, 1) * max(abs(iso$val)),
                               direction = -1) +
@@ -75,7 +79,7 @@ make_training_animation <- function(model_fit, use_future = FALSE,
   message("Plotting frames...")
   if(use_future) {
     png_files <- furrr::future_map(seq_along(png_files),
-                                   ~ plot_preds(fit$training_progress[[.x]],
+                                   ~ plot_preds(model_fit$training_progress[[.x]],
                                                 model_fit$test_data,
                                                 model_fit$true_range_polygons,
                                                 model_fit$bg_polygons,
@@ -83,7 +87,7 @@ make_training_animation <- function(model_fit, use_future = FALSE,
                                                 file_names = png_files[.x]),
                                    .progress = TRUE)
   } else {
-    png_files <- pblapply(seq_along(png_files), function(x) plot_preds(fit$training_progress[[x]],
+    png_files <- pbapply::pblapply(seq_along(png_files), function(x) plot_preds(fit$training_progress[[x]],
                                                                        model_fit$test_data,
                                                                        model_fit$true_range_polygons,
                                                                        model_fit$bg_polygons,
