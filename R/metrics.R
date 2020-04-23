@@ -15,9 +15,12 @@ calculate_metrics <- function(true_sf, pred_sf) {
                   Frechet = frechet)
 
   if(polygons) {
+    intersection <- sf::st_intersection(true_sf, pred_sf)
     metrics$recall <- recall
     metrics$precision <- precision
     metrics$F_metric <- recall * precision
   }
+
+  metrics
 
 }
