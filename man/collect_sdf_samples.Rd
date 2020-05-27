@@ -14,7 +14,8 @@ collect_sdf_samples(
   geo_dist = FALSE,
   centrer = NULL,
   scaler = NULL,
-  use_future
+  use_future,
+  drop_NAs = TRUE
 )
 }
 \arguments{

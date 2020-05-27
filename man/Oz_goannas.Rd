@@ -4,7 +4,8 @@
 \name{Oz_goannas}
 \alias{Oz_goannas}
 \title{Species ranges for 31 Australian Goannas from Shai et al. (2017).}
-\format{An sf object with 31 rows and 7 variables:
+\format{
+An sf object with 31 rows and 7 variables:
 \describe{
   \item{Binomial}{Latin binomial name of Goanna species}
   \item{Area}{Area of species' range, in meters^2}
@@ -13,7 +14,8 @@
   \item{Group}{Taxonomic group, always lizard in this case}
   \item{Value}{??}
   \item{geometry}{sfc_GEOMETRY list of type MULTIPOLYGON containing the range polygons}
-}}
+}
+}
 \source{
 \url{https://datadryad.org/stash/dataset/doi:10.5061/dryad.83s7k}
 }

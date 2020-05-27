@@ -7,3 +7,5 @@
 ^data-raw$
 ^README\.Rmd$
 ^vignettes/wc5$
+^play$
+^wc5$

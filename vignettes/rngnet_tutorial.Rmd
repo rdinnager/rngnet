@@ -60,15 +60,14 @@ To look at that another way, we can plot isolines of distance around the species
 ```{r plot_sdf_iso}
 rngnet::plot_SDF(sdf, type = "isolines")
 ```
-Okay, so now we need some environmental data which we can use to predict the range SDF of the our stripey-tailed goanna, and therefore predict the shape of its range boundary through its zero isocline. Let's get bioclim data using the `raster` package and use that to try and model the species range boundary. We will use the package `velox` to do fast cropping of the bioclim data to Australia's extent.
+Okay, so now we need some environmental data which we can use to predict the range SDF of the our stripey-tailed goanna, and therefore predict the shape of its range boundary through its zero isocline. Let's get bioclim data using the `raster` package and use that to try and model the species range boundary. 
 
 ```{r get_bioclim}
 bioclim <- raster::getData("worldclim", var = 'bio', res = 5)
-bioclim_vx <- velox::velox(bioclim)
 
-bioclim_vx$crop(Oz)
-
-bioclim_rast <- bioclim_vx$as.RasterStack()
+bioclim_rast <- crop(bioclim, Oz %>%
+                       sf::as_Spatial() %>%
+                       raster::extent())
 ```
 
 Let's check that worked.
@@ -89,19 +88,15 @@ So, what can we do with this model besides just entertaining ourselves watching 
 ```{r get_proj_bioclim}
 bioclim_proj_50 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 50)
 
+bioclim_proj_50_rast <- crop(bioclim_proj_50, Oz %>%
+                        sf::as_Spatial() %>%
+                        raster::extent())
+
 bioclim_proj_70 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 70)
 
-bioclim_proj_50_vx <- velox::velox(bioclim_proj_50)
-
-bioclim_proj_50_vx$crop(Oz)
-
-bioclim_proj_50_rast <- bioclim_proj_50_vx$as.RasterStack()
-
-bioclim_proj_70_vx <- velox::velox(bioclim_proj_70)
-
-bioclim_proj_70_vx$crop(Oz)
-
-bioclim_proj_70_rast <- bioclim_proj_70_vx$as.RasterStack()
+bioclim_proj_70_rast <- crop(bioclim_proj_70, Oz %>%
+                        sf::as_Spatial() %>%
+                        raster::extent())
 
 raster::plot(bioclim_proj_70_rast[[1]])
 ```

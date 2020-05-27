@@ -70,10 +70,6 @@ collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts =
                                 geo_dist = FALSE, centrer = NULL, scaler = NULL, use_future,
                                 drop_NAs = TRUE) {
 
-  if(!is.null(env)) {
-    env_vx <- velox::velox(env)
-  }
-
   if(!is.null(centrer)) {
 
     shape_centroid <- sf::st_centroid(bg_polygons %>% sf::st_union())
@@ -131,7 +127,7 @@ collect_sdf_samples <- function(range_polygons, bg_polygons, env = NULL, n_pts =
   }
 
   if(!is.null(env)) {
-    env_sample <- env_vx$extract_points(shape_sample)
+    env_sample <- extract(env, shape_sample %>% sf::st_as_sf())
     colnames(env_sample) <- names(env)
   }
 

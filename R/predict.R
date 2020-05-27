@@ -17,8 +17,7 @@ make_prediction_grid <- function(range_sf, bg, env = NULL, n_cells = 10000,
   prediction_map <- make_prediction_sf(range_sf, bg, n_cells)
 
   if(!is.null(env)) {
-    env_vx <- velox::velox(env)
-    env_vals <- env_vx$extract_points(prediction_map)
+    env_vals <- extract(env, prediction_map %>% sf::st_as_sf())
     colnames(env_vals) <- names(env)
 
     prediction_df <- sf_points_to_tibble(prediction_map) %>%
