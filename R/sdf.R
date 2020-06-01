@@ -26,7 +26,7 @@ calculate_sdf <- function(points_sf, range_sf, geo_dist = TRUE) {
   suppressMessages(grid_inside <- points_sf %>%
                      sf::st_as_sf() %>%
                      sf::st_join(range_sf %>%
-                                   lwgeom::st_make_valid() %>%
+                                   sf::st_make_valid() %>%
                                    sf::st_as_sf() %>%
                                    dplyr::mutate(id = 1))
     )

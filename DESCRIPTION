@@ -1,5 +1,5 @@
 Package: rngnet
-Title: What the Package Does (One Line, Title Case)
+Title: Modelling Species Ranges using DeepSDF
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Russell",
@@ -7,7 +7,9 @@ Authors@R:
            role = c("aut", "cre"),
            email = "r.dinnage@gmail.com",
            comment = c(ORCID = "0000-0003-0846-2819"))
-Description: What the package does (one paragraph).
+Description: 
+    Uses Deep Signed Distance Function models to perform species distribution 
+    modelling on species range polygons.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -16,12 +18,13 @@ Suggests:
     testthat (>= 2.1.0),
     spelling,
     knitr,
-    rmarkdown
+    rmarkdown,
+    rgdal
 Language: en-US
 RoxygenNote: 7.1.0
 Imports: 
     magrittr,
-    sf,
+    sf (>= 0.9-0),
     ggplot2,
     isoband,
     scico,
@@ -31,7 +34,7 @@ Imports:
     patchwork,
     gifski,
     pbapply,
-    rstudioapi,
     furrr,
     digest
 VignetteBuilder: knitr
+SystemRequirement: GEOS (>= 3.8.0)

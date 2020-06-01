@@ -101,6 +101,6 @@ make_training_animation <- function(model_fit, use_future = FALSE,
   anim <- gifski::gifski(png_files, gif_file = gif_file, height = 480, width = 960,
                          delay = duration / length(png_files))
 
-  rstudioapi::viewer(anim)
+  anim
 
 }

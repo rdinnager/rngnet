@@ -11,10 +11,10 @@ Oz <- rnaturalearth::ne_countries(scale = 50, country = "Australia", returnclass
 
 # Oz_reps <- reps %>%
 #   sf::st_transform(7856) %>%
-#   lwgeom::st_make_valid() %>%
+#   sf::st_make_valid() %>%
 #   sf::st_intersection(Oz %>%
 #                         sf::st_transform(7856) %>%
-#                         lwgeom::st_make_valid())
+#                         sf::st_make_valid())
 
 Oz_reps <- reps %>%
   sf::st_intersection(Oz)

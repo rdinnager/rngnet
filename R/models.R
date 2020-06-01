@@ -71,7 +71,8 @@ deepSDF_model <- function(input_len, net_breadth = 256L, dropout_rate = 0.5) {
 #'
 #' @examples
 run_model <- function(train_dat, test_dat = NULL,
-                      epochs, batch_size, reset_when_done = FALSE) {
+                      epochs, batch_size, reset_when_done = FALSE,
+                      verbose = TRUE) {
 
   train_x <- train_dat$train$x
   train_y <- train_dat$train$y
@@ -88,7 +89,7 @@ run_model <- function(train_dat, test_dat = NULL,
     validation_data = validation_list,
     epochs = epochs,
     batch_size = batch_size,
-    view_metrics = TRUE,
+    view_metrics = verbose,
     callbacks = callbacks
   )
 

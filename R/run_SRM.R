@@ -31,7 +31,8 @@ run_SRM <- function(range_polygons, env_raster, bg_polygons = NULL, n_sdf_sample
                     keep_sdf_samples = TRUE,
                     max_epochs = 500L,
                     geo_dist = FALSE,
-                    drop_NAs = TRUE) {
+                    drop_NAs = TRUE,
+                    verbose = TRUE) {
 
   validation_type <- match.arg(validation_type)
 

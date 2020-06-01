@@ -83,7 +83,7 @@ title(names(bioclim)[1])
 Bioclim has 19 variables that measure different aspects of climate mainly involving temporal means and variability in rainfall and temperature. Now we have all the data we need to run a model! The main model fitting function in `rngnet` is `fit_SRM`, which takes as input a range polygon or polygons in `sf` format, a set of environmental factors as a `RasterLayer` or `RasterStack` object, and an optional background polygon (if not provided a background polygon will be generated from the environmental raster). Let's give it a try! 
 
 ```{r run_model_1}
-fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "folds", validation_folds = 5L, early_stop_patience = 12)
+fit <- run_SRM(stripey, bg = Oz, env = bioclim_rast, validation_type = "folds", validation_folds = 5L, early_stop_patience = 12, verbose = FALSE)
 ```
 
 So, what can we do with this model besides just entertaining ourselves watching the wiggly polygon in the training animation (which is pretty fun I have to admit)? Well, just like any other SDM, we can use it to predict range boundaries under different environmental distributions, such as those expected under a climate change scenario. Let's try this. We can download future projected Bioclim variables using the `raster` package, and then ask our model to predict the range boundaries under these new values. Let's use the Access 1.0 model of the CMIP5 climate projections, for the years 2050, and 2070. We'll use representative concentration pathway 6.
@@ -91,13 +91,13 @@ So, what can we do with this model besides just entertaining ourselves watching 
 ```{r get_proj_bioclim}
 bioclim_proj_50 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 50)
 
-bioclim_proj_50_rast <- crop(bioclim_proj_50, Oz %>%
+bioclim_proj_50_rast <- raster::crop(bioclim_proj_50, Oz %>%
                         sf::as_Spatial() %>%
                         raster::extent())
 
 bioclim_proj_70 <- raster::getData('CMIP5', var = 'bio', res = 5, rcp = 85, model = 'AC', year = 70)
 
-bioclim_proj_70_rast <- crop(bioclim_proj_70, Oz %>%
+bioclim_proj_70_rast <- raster::crop(bioclim_proj_70, Oz %>%
                         sf::as_Spatial() %>%
                         raster::extent())
 
