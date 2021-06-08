@@ -11,10 +11,33 @@
 #'
 #' @examples
 make_prediction_grid <- function(range_sf, bg, env = NULL, n_cells = 10000,
-                                 return_type = c("matrix", "tibble"), use_coords = FALSE) {
+                                 return_type = c("matrix", "tibble"),
+                                 centrer = NULL, scaler = NULL,
+                                 use_coords = FALSE){
 
   return_type <- match.arg(return_type)
   prediction_map <- make_prediction_sf(range_sf, bg, n_cells)
+
+  if(use_coords) {
+    if(is.null(centrer)) {
+      shape_centroid <- sf::st_centroid(bg %>% sf::st_union())
+      st <- bg - shape_centroid
+
+      norms <- st %>%
+          sf::st_coordinates() %>%
+          .[ , 1:2] %>%
+          apply(1, function(x) sqrt(sum(x^2)))
+
+      scaler <- max(norms)
+
+      centrer <- shape_centroid %>% sf::st_coordinates() %>%
+        as.vector()
+
+    }
+
+    prediction_map <- (prediction_map - centrer) / scaler
+
+  }
 
   if(!is.null(env)) {
     env_vals <- extract(env, prediction_map %>% sf::st_as_sf())
